@@ -69,7 +69,7 @@ import org.eclipse.jetty.util.thread.Scheduler;
  * HttpTransport.completed().
  *
  */
-public class HttpChannel<T> implements HttpParser.RequestHandler<T>, Runnable, HttpParser.ProxyHandler
+public class HttpChannel<T> implements HttpParser.RequestHandler<T>, Runnable, HttpParser.ProxyHandler, HttpOutput.Interceptor
 {
     private static final Logger LOG = Log.getLogger(HttpChannel.class);
     private static final ThreadLocal<HttpChannel<?>> __currentChannel = new ThreadLocal<>();
@@ -178,6 +178,12 @@ public class HttpChannel<T> implements HttpParser.RequestHandler<T>, Runnable, H
     public HttpConfiguration getHttpConfiguration()
     {
         return _configuration;
+    }
+
+    @Override
+    public boolean isOptimizedForDirectBuffers()
+    {
+        return getHttpTransport().isOptimizedForDirectBuffers();
     }
 
     public Server getServer()
@@ -793,11 +799,17 @@ public class HttpChannel<T> implements HttpParser.RequestHandler<T>, Runnable, H
      * @param complete whether the content is complete for the response
      * @param callback Callback when complete or failed
      */
-    protected void write(ByteBuffer content, boolean complete, Callback callback)
+    @Override
+    public void write(ByteBuffer content, boolean complete, Callback callback)
     {
         sendResponse(null,content,complete,callback);
     }
 
+    public HttpOutput.Interceptor getNextInterceptor()
+    {
+        return null;
+    }
+    
     protected void execute(Runnable task)
     {
         _connector.getExecutor().execute(task);

@@ -153,7 +153,7 @@ public class ManagedSelector extends ContainerLifeCycle implements Dumpable
             submit(stop_selector);
             stop_selector._stopped.await();
             
-            timeout = getStopTimeout()>0 && !stop_selector._forcedClose.isEmpty();
+            timeout = getStopTimeout()>0 && stop_selector._forcedEndPointClose;
             if (timeout)
             {
                 System.err.println("Cannot gracefully stop:");
@@ -830,7 +830,7 @@ public class ManagedSelector extends ContainerLifeCycle implements Dumpable
     private class StopSelector implements SelectorUpdate
     {
         CountDownLatch _stopped = new CountDownLatch(1);
-        Set<EndPoint> _forcedClose = new HashSet<>();
+        boolean _forcedEndPointClose = false;
         
         @Override
         public void update(Selector selector)
@@ -844,7 +844,7 @@ public class ManagedSelector extends ContainerLifeCycle implements Dumpable
                     {
                         EndPoint endp = (EndPoint)attachment;
                         if (!endp.isOutputShutdown())
-                            _forcedClose.add(endp);
+                            _forcedEndPointClose = true;
                         closeNoExceptions((EndPoint)attachment);
                     }
                 }

@@ -24,12 +24,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 /** 
  * RolloverFileOutputStream.
@@ -61,6 +63,9 @@ public class RolloverFileOutputStream extends OutputStream
     private File _file;
     private boolean _append;
     private int _retainDays;
+    
+    ZonedDateTime _midnight;
+    long _delay;
     
     /* ------------------------------------------------------------ */
     /**
@@ -209,13 +214,13 @@ public class RolloverFileOutputStream extends OutputStream
     {
         _rollTask = new RollTask();
         // Get tomorrow's midnight based on Configured TimeZone
-        ZonedDateTime midnight = toMidnight(now);
+        _midnight = toMidnight(now);
 
         // Schedule next rollover event to occur, based on local machine's Unix Epoch milliseconds
-        long delay = midnight.toInstant().toEpochMilli() - now.toInstant().toEpochMilli();
+        _delay = _midnight.toInstant().toEpochMilli() - now.toInstant().toEpochMilli();
         synchronized(RolloverFileOutputStream.class)
         {
-            __rollover.schedule(_rollTask,delay);
+            __rollover.schedule(_rollTask,_delay);
         }
     }
 
@@ -274,19 +279,25 @@ public class RolloverFileOutputStream extends OutputStream
             if (_out==null || datePattern>=0)
             {
                 // Yep
+                if (_out!=null)
+                    _out.close();
+                
                 oldFile = _file;
                 _file=file;
                 newFile = _file;
+                
                 if (!_append && file.exists())
                 {
                     backupFile = new File(file.toString()+"."+_fileBackupFormat.format(new Date(now.toInstant().toEpochMilli())));
-                    file.renameTo(backupFile);
+                    if (!file.renameTo(backupFile))
+                    {
+                        System.err.printf("Could not rename %s to %s%n",file,backupFile);
+                        if (!file.delete())
+                            System.err.printf("Could not delete %s%n",file);
+                    }
                 }
-                OutputStream oldOut=_out;
+
                 _out=new FileOutputStream(file.toString(),_append);
-                if (oldOut!=null)
-                    oldOut.close();
-                //if(log.isDebugEnabled())log.debug("Opened "+_file);
             }
         }
         
@@ -330,7 +341,8 @@ public class RolloverFileOutputStream extends OutputStream
                     File f = new File(dir,fn);
                     if(f.lastModified() < expired)
                     {
-                        f.delete();
+                        if(!f.delete())
+                            System.err.printf("Could not delete %s%n",f);
                     }
                 }
             }
@@ -423,5 +435,18 @@ public class RolloverFileOutputStream extends OutputStream
                 t.printStackTrace(System.err);
             }
         }
+    }
+    
+    @Override
+    public String toString()
+    {        
+        ZonedDateTime now = ZonedDateTime.now(_fileDateFormat.getTimeZone().toZoneId());
+        long delay = _midnight.toInstant().toEpochMilli() - now.toInstant().toEpochMilli();
+        
+        return String.format("%s@%x{mn=%s,d=%,ds,file=%s}",
+                this.getClass().getSimpleName(),hashCode(),
+                _midnight.format(DateTimeFormatter.ISO_DATE_TIME),
+                TimeUnit.MILLISECONDS.toSeconds(_delay),
+                _file);
     }
 }

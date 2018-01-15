@@ -278,11 +278,9 @@ public class RolloverFileOutputStreamTest
                 "unrelated-7",
                 "unrelated-6",
                 "unrelated-5"));
-            
 
             assertThat(IO.toString(new FileReader(new File(testDir,backup))),is("TICK"));
             assertThat(IO.toString(new FileReader(new File(testDir,"test-rofos-2016_04_10.log"))),is("TOCK"));
-            
         }
     }
 
@@ -347,6 +345,7 @@ public class RolloverFileOutputStreamTest
             assertThat(ls[0],is("test-rofos.log"));
 
             TimeUnit.SECONDS.sleep(10);
+            
             rofos.write("AFTER".getBytes());
             ls = testDir.list();
             assertThat(ls.length,is(2));

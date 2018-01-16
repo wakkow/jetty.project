@@ -37,7 +37,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.toolchain.test.FS;
 import org.eclipse.jetty.toolchain.test.MavenTestingUtils;
+import org.eclipse.jetty.toolchain.test.OS;
 import org.hamcrest.Matchers;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class RolloverFileOutputStreamTest
@@ -327,6 +329,7 @@ public class RolloverFileOutputStreamTest
     @Test
     public void testRolloverBackup() throws Exception
     {
+        Assume.assumeFalse(OS.IS_WINDOWS);
         File testDir = MavenTestingUtils.getTargetTestingDir(RolloverFileOutputStreamTest.class.getName() + "_testRollover");
         FS.ensureEmpty(testDir);
 

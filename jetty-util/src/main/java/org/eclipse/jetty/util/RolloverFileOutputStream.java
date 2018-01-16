@@ -22,6 +22,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -286,14 +289,20 @@ public class RolloverFileOutputStream extends OutputStream
                 _file=file;
                 newFile = _file;
                 
-                if (!_append && file.exists())
+                boolean append = _append;
+                if (!append && file.exists())
                 {
-                    backupFile = new File(file.toString()+"."+_fileBackupFormat.format(new Date(now.toInstant().toEpochMilli())));
-                    if (!file.renameTo(backupFile))
+                    try
+                    {
+                        backupFile = new File(file.toString()+"."+_fileBackupFormat.format(new Date(now.toInstant().toEpochMilli())));
+                        Files.move(file.toPath(),backupFile.toPath(),StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    catch(Throwable th)
                     {
                         System.err.printf("Could not rename %s to %s%n",file,backupFile);
-                        if (!file.delete())
-                            System.err.printf("Could not delete %s%n",file);
+                        th.printStackTrace();
+                        backupFile = null;
+                        append = true;
                     }
                 }
 

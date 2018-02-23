@@ -1,0 +1,5 @@
+language: java
+jdk: oraclejdk7
+dist: precise
+before_script:
+  - echo "MAVEN_OPTS='-Xmx2g -XX:MaxPermSize=512m'" > ~/.mavenrc

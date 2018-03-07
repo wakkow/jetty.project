@@ -1,0 +1,8 @@
+language: java
+dist: trusty
+sudo: false
+jdk: oraclejdk8
+before_script:
+  - echo "MAVEN_OPTS='-Xmx2g -XX:MaxPermSize=2048m'" > ~/.mavenrc
+env:
+  - JAVA_OPTS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true"
